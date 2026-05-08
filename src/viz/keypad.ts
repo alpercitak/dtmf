@@ -59,6 +59,33 @@ export const drawKeypad = (
   }
 };
 
+export interface KeypadLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export const getDigitAtClick = (layout: KeypadLayout, clickX: number, clickY: number): DTMFDigit | null => {
+  const relX = clickX - layout.x;
+  const relY = clickY - layout.y;
+
+  if (relX < 0 || relY < 0 || relX > layout.width || relY > layout.height) {
+    return null;
+  }
+
+  const cellW = layout.width / COLS;
+  const cellH = layout.height / ROWS;
+  const col = Math.floor(relX / cellW);
+  const row = Math.floor(relY / cellH);
+
+  if (row >= ROWS || col >= COLS) {
+    return null;
+  }
+
+  return DTMF_TABLE[row]?.[col] ?? null;
+};
+
 const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
   ctx.beginPath();
   ctx.moveTo(x + r, y);

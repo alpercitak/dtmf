@@ -3,6 +3,7 @@ export const FFT_SIZE = 4096;
 export interface AudioNodes {
   ctx: AudioContext;
   analyser: AnalyserNode;
+  synthGain: GainNode;
   fftData: Float32Array<ArrayBuffer>;
 }
 
@@ -20,9 +21,15 @@ export const getOrCreateContext = (): AudioNodes => {
   analyser.smoothingTimeConstant = 0.6;
   analyser.connect(ctx.destination);
 
+  // Create a synth gain node that routes through the analyser
+  const synthGain = ctx.createGain();
+  synthGain.gain.value = 1;
+  synthGain.connect(analyser);
+
   nodes = {
     ctx,
     analyser,
+    synthGain,
     fftData: new Float32Array(analyser.frequencyBinCount),
   };
 

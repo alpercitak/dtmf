@@ -1,11 +1,12 @@
 import { FFT_SIZE, getOrCreateContext, getSampleRate, readFFT } from './audio/analyser';
 import { createDetector, THRESHOLD_DB } from './dtmf/detector';
-import { COL_FREQS, dbAtFreq, ROW_FREQS } from './dtmf/frequencies';
+import { COL_FREQS, dbAtFreq, ROW_FREQS, DIGIT_FREQS } from './dtmf/frequencies';
 import { wireControls } from './ui/controls';
 import { setupCanvas } from './viz/canvas';
-import { createKeypadState, drawKeypad, flashDigit } from './viz/keypad';
+import { createKeypadState, drawKeypad, flashDigit, getDigitAtClick, type KeypadLayout } from './viz/keypad';
 import { drawSpectrum } from './viz/spectrum';
 import { createTickerState, drawTicker, pushEvent } from './viz/ticker';
+import { playDTMFTone } from './audio/context';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx2d = setupCanvas(canvas);
@@ -15,6 +16,41 @@ const keypadState = createKeypadState();
 const tickerState = createTickerState();
 
 wireControls(tickerState, detector);
+
+// Track keypad layout for click detection
+let keypadLayout: KeypadLayout | null = null;
+
+// Handle canvas clicks
+canvas.addEventListener('click', async (e) => {
+  if (!keypadLayout) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  const digit = getDigitAtClick(keypadLayout, clickX, clickY);
+  if (!digit) return;
+
+  const nowMs = performance.now();
+  const freqs = DIGIT_FREQS[digit];
+
+  // Flash the digit
+  flashDigit(keypadState, digit, nowMs);
+
+  // Play the tone
+  await playDTMFTone(digit, 200);
+
+  // Create and push a detection event
+  if (freqs) {
+    pushEvent(tickerState, {
+      digit,
+      timestamp: nowMs,
+      lowFreq: freqs.low,
+      highFreq: freqs.high,
+      confidence: 0.95,
+    });
+  }
+});
 
 const loop = () => {
   const nodes = getOrCreateContext();
@@ -31,6 +67,14 @@ const loop = () => {
   const VIZ_H = H * 0.75;
   const TICKER_H = 52;
   const TICKER_Y = H - TICKER_H - 10;
+
+  // Store keypad layout for click detection
+  keypadLayout = {
+    x: SPECTRUM_W + 6,
+    y: 0,
+    width: KEYPAD_W,
+    height: VIZ_H,
+  };
 
   // Determine which DTMF freqs are currently active
   const activeFreqs = new Set<number>();
