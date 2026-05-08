@@ -1,13 +1,20 @@
 import type { DTMFDigit } from '../dtmf/types';
 import { DTMF_TABLE } from '../dtmf/frequencies';
 
-const COLS = 4;
-const ROWS = 4;
-
 export interface KeypadState {
   activeDigit: DTMFDigit | null;
   activeUntilMs: number;
 }
+
+export interface KeypadLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const COLS = 4 as const;
+const ROWS = 4 as const;
 
 export const createKeypadState = (): KeypadState => ({ activeDigit: null, activeUntilMs: 0 });
 
@@ -58,13 +65,6 @@ export const drawKeypad = (
     }
   }
 };
-
-export interface KeypadLayout {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 export const getDigitAtClick = (layout: KeypadLayout, clickX: number, clickY: number): DTMFDigit | null => {
   const relX = clickX - layout.x;

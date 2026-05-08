@@ -1,10 +1,10 @@
 import type { DetectionEvent } from '../dtmf/types';
 
-const MAX_HISTORY = 32 as const;
-
 export interface TickerState {
   events: Array<DetectionEvent>;
 }
+
+const MAX_HISTORY = 32 as const;
 
 export const createTickerState = (): TickerState => ({ events: [] });
 

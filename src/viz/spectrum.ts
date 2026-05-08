@@ -6,6 +6,8 @@ const BAR_COLOR = '#1e3a5f';
 const DTMF_COLOR = '#00d9ff';
 const DTMF_ACTIVE_COLOR = '#ff00ff';
 const LABEL_COLOR = '#00d9ff';
+const MAX_FREQ = 4000 as const; // Only render 0–4kHz range
+const LABEL_HEIGHT = 10 as const;
 
 export const drawSpectrum = (
   ctx: CanvasRenderingContext2D,
@@ -19,9 +21,7 @@ export const drawSpectrum = (
   ctx.fillRect(0, 0, width, height);
 
   const binCount = fftData.length;
-  // Only render 0–4kHz range (all DTMF freqs fit here)
-  const maxFreq = 4000;
-  const maxBin = freqToBin(maxFreq, sampleRate, FFT_SIZE);
+  const maxBin = freqToBin(MAX_FREQ, sampleRate, FFT_SIZE);
   const visibleBins = Math.min(binCount, maxBin);
   const barWidth = width / visibleBins;
 
@@ -62,10 +62,6 @@ export const drawSpectrum = (
     labelPositions.push({ freq, x });
   }
 
-  // Draw labels with collision avoidance
-  const labelHeight = 10;
-  const minSpacing = 35; // Minimum pixel spacing between labels
-
   for (const { freq, x } of labelPositions) {
     const metrics = ctx.measureText(`${freq}`);
     const labelWidth = metrics.width;
@@ -78,7 +74,7 @@ export const drawSpectrum = (
     );
 
     if (!hasCollision) {
-      ctx.fillText(`${freq}`, x, height - labelHeight);
+      ctx.fillText(`${freq}`, x, height - LABEL_HEIGHT);
       drawnLabels.push({ x: labelLeft, width: labelWidth });
     }
   }

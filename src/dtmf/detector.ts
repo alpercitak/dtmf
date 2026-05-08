@@ -1,15 +1,15 @@
 import type { DetectionEvent, DTMFDigit } from './types';
-import { ROW_FREQS, COL_FREQS, DTMF_TABLE, dbAtFreq } from './frequencies';
-
-export const THRESHOLD_DB = -40 as const;
-const MIN_TONE_MS = 40 as const;
-const COOLDOWN_MS = 120 as const;
+import { ROW_FREQS, COL_FREQS, DTMF_TABLE, dbAtFreq, ROW_FREQS_DEFAULT, COL_FREQS_DEFAULT } from './frequencies';
 
 interface DetectorState {
   lastDigit: DTMFDigit | null;
   toneStartMs: number | null;
   cooldownUntilMs: number;
 }
+
+export const THRESHOLD_DB = -40 as const;
+const MIN_TONE_MS = 40 as const;
+const COOLDOWN_MS = 120 as const;
 
 export const createDetector = () => {
   const state: DetectorState = {
@@ -35,7 +35,9 @@ export const createDetector = () => {
       return null;
     }
 
-    if (nowMs < state.cooldownUntilMs) return null;
+    if (nowMs < state.cooldownUntilMs) {
+      return null;
+    }
 
     if (state.lastDigit !== digit) {
       state.lastDigit = digit;
@@ -49,8 +51,8 @@ export const createDetector = () => {
     }
 
     if (nowMs - state.toneStartMs >= MIN_TONE_MS) {
-      const rowFreq = ROW_FREQS[rowHit] ?? 697;
-      const colFreq = COL_FREQS[colHit] ?? 1209;
+      const rowFreq = ROW_FREQS[rowHit] ?? ROW_FREQS_DEFAULT;
+      const colFreq = COL_FREQS[colHit] ?? COL_FREQS_DEFAULT;
       const confidence =
         (dbAtFreq(fftData, rowFreq, sampleRate, fftSize) + dbAtFreq(fftData, colFreq, sampleRate, fftSize)) / 2;
 
@@ -72,5 +74,3 @@ export const createDetector = () => {
 
   return { detect, reset };
 };
-
-export type Detector = ReturnType<typeof createDetector>;
