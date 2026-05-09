@@ -7,6 +7,7 @@ import { createKeypadState, drawKeypad, flashDigit, getDigitAtClick, type Keypad
 import { drawSpectrum } from './viz/spectrum';
 import { createTickerState, drawTicker, pushEvent } from './viz/ticker';
 import { playDTMFTone } from './audio/context';
+import { wireKeyboard } from './ui/keyboard';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx2d = setupCanvas(canvas);
@@ -16,6 +17,24 @@ const keypadState = createKeypadState();
 const tickerState = createTickerState();
 
 wireControls(tickerState, detector);
+
+wireKeyboard(async (digit) => {
+  const nowMs = performance.now();
+  const freqs = DIGIT_FREQS[digit];
+
+  flashDigit(keypadState, digit, nowMs);
+  await playDTMFTone(digit, 200);
+
+  if (freqs) {
+    pushEvent(tickerState, {
+      digit,
+      timestamp: nowMs,
+      lowFreq: freqs.low,
+      highFreq: freqs.high,
+      confidence: 0.95,
+    });
+  }
+});
 
 // Track keypad layout for click detection
 let keypadLayout: KeypadLayout | null = null;
