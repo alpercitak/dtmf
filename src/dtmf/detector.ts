@@ -74,3 +74,5 @@ export const createDetector = () => {
 
   return { detect, reset };
 };
+
+export type Detector = ReturnType<typeof createDetector>;
