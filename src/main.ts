@@ -1,13 +1,14 @@
 import { FFT_SIZE, getOrCreateContext, getSampleRate, readFFT } from './audio/analyser';
+import { playDTMFTone } from './audio/context';
 import { createDetector, THRESHOLD_DB } from './dtmf/detector';
-import { COL_FREQS, dbAtFreq, ROW_FREQS, DIGIT_FREQS } from './dtmf/frequencies';
+import { COL_FREQS, dbAtFreq, DIGIT_FREQS, ROW_FREQS } from './dtmf/frequencies';
+import type { DetectionEvent, DTMFDigit } from './dtmf/types';
 import { wireControls } from './ui/controls';
+import { wireKeyboard } from './ui/keyboard';
 import { setupCanvas } from './viz/canvas';
 import { createKeypadState, drawKeypad, flashDigit, getDigitAtClick, type KeypadLayout } from './viz/keypad';
 import { drawSpectrum } from './viz/spectrum';
 import { createTickerState, drawTicker, pushEvent } from './viz/ticker';
-import { playDTMFTone } from './audio/context';
-import { wireKeyboard } from './ui/keyboard';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx2d = setupCanvas(canvas);
@@ -16,112 +17,102 @@ const detector = createDetector();
 const keypadState = createKeypadState();
 const tickerState = createTickerState();
 
-wireControls(tickerState, detector);
+interface Layout {
+  canvasW: number;
+  canvasH: number;
+  spectrumW: number;
+  keypadW: number;
+  vizH: number;
+  tickerH: number;
+  tickerY: number;
+  keypad: KeypadLayout;
+}
 
-wireKeyboard(async (digit) => {
-  const nowMs = performance.now();
-  const freqs = DIGIT_FREQS[digit];
+const computeLayout = (): Layout => {
+  const { width: canvasW, height: canvasH } = canvas.getBoundingClientRect();
+  const keypadW = Math.min(canvasW * 0.32, 240);
+  const spectrumW = canvasW - keypadW - 12;
+  const vizH = canvasH * 0.75;
+  const tickerH = 52;
+  return {
+    canvasW,
+    canvasH,
+    spectrumW,
+    keypadW,
+    vizH,
+    tickerH,
+    tickerY: canvasH - tickerH - 10,
+    keypad: { x: spectrumW + 6, y: 0, width: keypadW, height: vizH },
+  };
+};
 
-  flashDigit(keypadState, digit, nowMs);
-  await playDTMFTone(digit, 200);
+let layout: Layout = computeLayout();
 
-  if (freqs) {
-    pushEvent(tickerState, {
-      digit,
-      timestamp: nowMs,
-      lowFreq: freqs.low,
-      highFreq: freqs.high,
-      confidence: 0.95,
-    });
-  }
+window.addEventListener('resize', () => {
+  layout = computeLayout();
 });
 
-// Track keypad layout for click detection
-let keypadLayout: KeypadLayout | null = null;
-
-// Handle canvas clicks
-canvas.addEventListener('click', async (e) => {
-  if (!keypadLayout) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const clickX = e.clientX - rect.left;
-  const clickY = e.clientY - rect.top;
-
-  const digit = getDigitAtClick(keypadLayout, clickX, clickY);
-  if (!digit) return;
-
+const handleDigitInput = async (digit: DTMFDigit): Promise<void> => {
   const nowMs = performance.now();
   const freqs = DIGIT_FREQS[digit];
+  if (!freqs) {
+    return;
+  }
 
-  // Flash the digit
   flashDigit(keypadState, digit, nowMs);
-
-  // Play the tone
   await playDTMFTone(digit, 200);
 
-  // Create and push a detection event
-  if (freqs) {
-    pushEvent(tickerState, {
-      digit,
-      timestamp: nowMs,
-      lowFreq: freqs.low,
-      highFreq: freqs.high,
-      confidence: 0.95,
-    });
+  const event: DetectionEvent = {
+    digit,
+    timestamp: nowMs,
+    lowFreq: freqs.low,
+    highFreq: freqs.high,
+    confidence: 0.95,
+  };
+  pushEvent(tickerState, event);
+};
+
+wireControls(tickerState, detector);
+wireKeyboard(handleDigitInput);
+
+canvas.addEventListener('click', async (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const digit = getDigitAtClick(layout.keypad, e.clientX - rect.left, e.clientY - rect.top);
+  if (digit) {
+    handleDigitInput(digit);
   }
 });
 
 const loop = () => {
+  const { canvasW, canvasH, spectrumW, keypadW, vizH, tickerH, tickerY, keypad } = layout;
   const nodes = getOrCreateContext();
   const fftData = readFFT(nodes);
   const sampleRate = getSampleRate(nodes);
   const nowMs = performance.now();
 
-  const W = canvas.getBoundingClientRect().width;
-  const H = canvas.getBoundingClientRect().height;
-
-  // Layout constants - keypad on the side
-  const KEYPAD_W = Math.min(W * 0.32, 240);
-  const SPECTRUM_W = W - KEYPAD_W - 12;
-  const VIZ_H = H * 0.75;
-  const TICKER_H = 52;
-  const TICKER_Y = H - TICKER_H - 10;
-
-  // Store keypad layout for click detection
-  keypadLayout = {
-    x: SPECTRUM_W + 6,
-    y: 0,
-    width: KEYPAD_W,
-    height: VIZ_H,
-  };
-
-  // Determine which DTMF freqs are currently active
+  // Determine active DTMF frequencies
   const activeFreqs = new Set<number>();
-  for (const f of [...ROW_FREQS, ...COL_FREQS]) {
-    if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) {
-      activeFreqs.add(f);
-    }
+  for (const f of ROW_FREQS) {
+    if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
+  }
+  for (const f of COL_FREQS) {
+    if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
   }
 
-  // Run detector
+  // Run detector — audio pipeline drives flash + ticker for real signals
   const event = detector.detect(fftData, sampleRate, FFT_SIZE, nowMs);
   if (event) {
     flashDigit(keypadState, event.digit, nowMs);
     pushEvent(tickerState, event);
   }
 
-  // Clear
+  // Draw
   ctx2d.fillStyle = '#0a0a0f';
-  ctx2d.fillRect(0, 0, W, H);
+  ctx2d.fillRect(0, 0, canvasW, canvasH);
 
-  // Draw spectrum (left side)
-  drawSpectrum(ctx2d, fftData, sampleRate, SPECTRUM_W, VIZ_H, activeFreqs);
-
-  // Draw keypad (right side)
-  drawKeypad(ctx2d, keypadState, SPECTRUM_W + 6, 0, KEYPAD_W, VIZ_H, nowMs);
-
-  // Draw ticker (bottom)
-  drawTicker(ctx2d, tickerState, 10, TICKER_Y, W - 20, TICKER_H);
+  drawSpectrum(ctx2d, fftData, sampleRate, spectrumW, vizH, activeFreqs);
+  drawKeypad(ctx2d, keypadState, keypad.x, keypad.y, keypadW, vizH, nowMs);
+  drawTicker(ctx2d, tickerState, 10, tickerY, canvasW - 20, tickerH);
 
   requestAnimationFrame(loop);
 };
