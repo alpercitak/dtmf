@@ -26,6 +26,7 @@ export const drawSpectrum = (
   const barWidth = width / visibleBins;
 
   const dtmfBins = new Set(ALL_DTMF_FREQS.map((f) => freqToBin(f, sampleRate, FFT_SIZE)));
+  const activeBins = new Set([...activeFreqs].map((f) => freqToBin(f, sampleRate, FFT_SIZE)));
 
   for (let i = 0; i < visibleBins; i++) {
     const db = fftData[i] ?? -100;
@@ -34,8 +35,7 @@ export const drawSpectrum = (
     const barH = norm * height;
 
     const isDtmf = dtmfBins.has(i);
-    const freq = Math.round((i * sampleRate) / FFT_SIZE);
-    const isActive = activeFreqs.has(freq);
+    const isActive = activeBins.has(i);
 
     if (isDtmf) {
       ctx.fillStyle = isActive ? DTMF_ACTIVE_COLOR : DTMF_COLOR;
