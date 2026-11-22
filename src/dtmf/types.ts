@@ -12,5 +12,3 @@ export interface DTMFFreqPair {
   low: number;
   high: number;
 }
-
-export type InputMode = 'file' | 'mic' | 'sample';

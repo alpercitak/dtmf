@@ -75,7 +75,7 @@ const handleDigitInput = async (digit: DTMFDigit): Promise<void> => {
 wireControls(tickerState, detector);
 wireKeyboard(handleDigitInput);
 
-canvas.addEventListener('click', async (e) => {
+canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
   const digit = getDigitAtClick(layout.keypad, e.clientX - rect.left, e.clientY - rect.top);
   if (digit) {
