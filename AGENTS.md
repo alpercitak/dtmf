@@ -37,7 +37,7 @@ Trust internal TypeScript invariants. No assertions/guards/validation/fallbacks 
 
 Precise types over runtime checks — no `any`, no unnecessary assertions, no non-null assertions where the type can be modeled correctly. `noUncheckedIndexedAccess` is on; model the data so indexing is safe rather than sprinkling fallbacks.
 The render loop is a hot path: no per-frame allocations that can be hoisted, reuse the FFT buffer, keep per-frame work proportional to visible bins.
-One `AudioContext` for the app. Disconnect and stop sources you replace; stop media stream tracks you no longer use. Mind routing — anything connected to the analyser is also heard, since the analyser feeds `ctx.destination`.
+One `AudioContext` for the app. Disconnect and stop sources you replace; stop media stream tracks you no longer use. The analyser is a tap, not an output: sources that should be heard connect to `ctx.destination` themselves; the mic never does.
 Keep `src/dtmf/` free of DOM and Web Audio so it stays testable with plain `Float32Array` frames.
 
 ## Stopping
