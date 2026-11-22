@@ -19,12 +19,12 @@ export const getOrCreateContext = (): AudioNodes => {
   const analyser = ctx.createAnalyser();
   analyser.fftSize = FFT_SIZE;
   analyser.smoothingTimeConstant = 0.6;
-  analyser.connect(ctx.destination);
 
-  // Create a synth gain node that routes through the analyser
+  // The analyser is a tap, not an output: audible sources also connect to ctx.destination themselves.
   const synthGain = ctx.createGain();
   synthGain.gain.value = 1;
   synthGain.connect(analyser);
+  synthGain.connect(ctx.destination);
 
   nodes = {
     ctx,
@@ -37,12 +37,14 @@ export const getOrCreateContext = (): AudioNodes => {
 };
 
 export const disconnectCurrentSource = () => {
-  if (currentSource) {
-    try {
-      currentSource.disconnect();
-    } catch {}
-    currentSource = null;
+  if (currentSource instanceof AudioBufferSourceNode) {
+    currentSource.stop();
   }
+  if (currentSource instanceof MediaStreamAudioSourceNode) {
+    for (const track of currentSource.mediaStream.getTracks()) track.stop();
+  }
+  currentSource?.disconnect();
+  currentSource = null;
 };
 
 export const connectSource = (source: AudioNode, nodes: AudioNodes) => {
