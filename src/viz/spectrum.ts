@@ -1,5 +1,5 @@
-import { ALL_DTMF_FREQS, freqToBin } from '../dtmf/frequencies';
 import { FFT_SIZE } from '../audio/analyser';
+import { ALL_DTMF_FREQS, freqToBin } from '../dtmf/frequencies';
 
 const BG = '#0a0a0f';
 const BAR_COLOR = '#1e3a5f';

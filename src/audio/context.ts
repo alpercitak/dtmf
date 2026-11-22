@@ -1,6 +1,6 @@
-import { getOrCreateContext, connectSource } from './analyser';
-import type { DTMFDigit } from '../dtmf/types';
 import { DIGIT_FREQS } from '../dtmf/frequencies';
+import type { DTMFDigit } from '../dtmf/types';
+import { connectSource, getOrCreateContext } from './analyser';
 
 export const loadAudioFile = async (file: File): Promise<void> => {
   const nodes = getOrCreateContext();

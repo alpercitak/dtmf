@@ -1,5 +1,5 @@
-import type { DTMFDigit } from '../dtmf/types';
 import { DTMF_TABLE } from '../dtmf/frequencies';
+import type { DTMFDigit } from '../dtmf/types';
 
 export interface KeypadState {
   activeDigit: DTMFDigit | null;

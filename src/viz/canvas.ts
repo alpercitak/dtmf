@@ -9,7 +9,7 @@ export const setupCanvas = (canvas: HTMLCanvasElement): CanvasRenderingContext2D
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
-    ctx!.scale(dpr, dpr);
+    ctx.scale(dpr, dpr);
   };
 
   resize();

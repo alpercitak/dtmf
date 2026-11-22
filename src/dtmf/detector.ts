@@ -1,5 +1,5 @@
+import { COL_FREQS, COL_FREQS_DEFAULT, DTMF_TABLE, dbAtFreq, ROW_FREQS, ROW_FREQS_DEFAULT } from './frequencies';
 import type { DetectionEvent, DTMFDigit } from './types';
-import { ROW_FREQS, COL_FREQS, DTMF_TABLE, dbAtFreq, ROW_FREQS_DEFAULT, COL_FREQS_DEFAULT } from './frequencies';
 
 interface DetectorState {
   lastDigit: DTMFDigit | null;

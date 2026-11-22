@@ -1,7 +1,7 @@
 import { FFT_SIZE, getOrCreateContext, getSampleRate, readFFT } from './audio/analyser';
 import { playDTMFTone } from './audio/context';
 import { createDetector, THRESHOLD_DB } from './dtmf/detector';
-import { COL_FREQS, dbAtFreq, DIGIT_FREQS, ROW_FREQS } from './dtmf/frequencies';
+import { COL_FREQS, DIGIT_FREQS, dbAtFreq, ROW_FREQS } from './dtmf/frequencies';
 import type { DetectionEvent, DTMFDigit } from './dtmf/types';
 import { wireControls } from './ui/controls';
 import { wireKeyboard } from './ui/keyboard';

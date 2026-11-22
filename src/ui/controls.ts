@@ -1,8 +1,8 @@
 import { loadAudioFile, loadSampleFile } from '../audio/context';
 import { startMic } from '../audio/mic';
+import type { Detector } from '../dtmf/detector';
 import type { TickerState } from '../viz/ticker';
 import { clearTicker } from '../viz/ticker';
-import type { Detector } from '../dtmf/detector';
 
 export const wireControls = (tickerState: TickerState, detector: Detector) => {
   const fileInput = document.getElementById('file-input') as HTMLInputElement;

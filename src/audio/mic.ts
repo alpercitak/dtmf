@@ -1,4 +1,4 @@
-import { getOrCreateContext, connectSource } from './analyser';
+import { connectSource, getOrCreateContext } from './analyser';
 
 export const startMic = async (): Promise<void> => {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
