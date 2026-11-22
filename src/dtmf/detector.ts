@@ -35,18 +35,14 @@ export const createDetector = () => {
       return null;
     }
 
-    if (nowMs < state.cooldownUntilMs) {
-      return null;
-    }
-
     if (state.lastDigit !== digit) {
       state.lastDigit = digit;
       state.toneStartMs = nowMs;
       return null;
     }
 
-    if (state.toneStartMs == null) {
-      state.toneStartMs = nowMs;
+    // toneStartMs is null once this tone has been emitted; it must end before the digit can fire again.
+    if (state.toneStartMs == null || nowMs < state.cooldownUntilMs) {
       return null;
     }
 
@@ -57,7 +53,6 @@ export const createDetector = () => {
         (dbAtFreq(fftData, rowFreq, sampleRate, fftSize) + dbAtFreq(fftData, colFreq, sampleRate, fftSize)) / 2;
 
       state.toneStartMs = null;
-      state.lastDigit = null;
       state.cooldownUntilMs = nowMs + COOLDOWN_MS;
 
       return { digit, timestamp: nowMs, lowFreq: rowFreq, highFreq: colFreq, confidence };
