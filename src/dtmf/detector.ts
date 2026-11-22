@@ -10,6 +10,28 @@ interface DetectorState {
 export const THRESHOLD_DB = -40 as const;
 const MIN_TONE_MS = 40 as const;
 const COOLDOWN_MS = 120 as const;
+/** The chosen row (or column) must beat the next loudest in its group by this much; rejects speech and music. */
+const MIN_DOMINANCE_DB = 6 as const;
+/** Max level difference between the row and column tone (DTMF "twist"). */
+const MAX_TWIST_DB = 8 as const;
+
+/** The loudest frequency in a group, if it is over the threshold and clearly louder than the rest of the group. */
+const dominant = (fftData: Float32Array, freqs: readonly number[], sampleRate: number, fftSize: number) => {
+  let index = -1;
+  let db = -Infinity;
+  let runnerUp = -Infinity;
+  freqs.forEach((f, i) => {
+    const level = dbAtFreq(fftData, f, sampleRate, fftSize);
+    if (level > db) {
+      runnerUp = db;
+      db = level;
+      index = i;
+    } else if (level > runnerUp) {
+      runnerUp = level;
+    }
+  });
+  return db > THRESHOLD_DB && db - runnerUp >= MIN_DOMINANCE_DB ? { index, db } : null;
+};
 
 export const createDetector = () => {
   const state: DetectorState = {
@@ -23,13 +45,12 @@ export const createDetector = () => {
    * Returns a DetectionEvent if a new digit was confirmed, null otherwise.
    */
   const detect = (fftData: Float32Array, sampleRate: number, fftSize: number, nowMs: number): DetectionEvent | null => {
-    const rowHit = ROW_FREQS.findIndex((f) => dbAtFreq(fftData, f, sampleRate, fftSize) > THRESHOLD_DB);
-    const colHit = COL_FREQS.findIndex((f) => dbAtFreq(fftData, f, sampleRate, fftSize) > THRESHOLD_DB);
+    const row = dominant(fftData, ROW_FREQS, sampleRate, fftSize);
+    const col = dominant(fftData, COL_FREQS, sampleRate, fftSize);
+    const digit =
+      row && col && Math.abs(row.db - col.db) <= MAX_TWIST_DB ? DTMF_TABLE[row.index]?.[col.index] : undefined;
 
-    const tonePresent = rowHit !== -1 && colHit !== -1;
-    const digit: DTMFDigit | undefined = tonePresent ? DTMF_TABLE[rowHit]?.[colHit] : undefined;
-
-    if (!tonePresent || digit == null) {
+    if (!row || !col || digit == null) {
       state.toneStartMs = null;
       state.lastDigit = null;
       return null;
@@ -47,10 +68,9 @@ export const createDetector = () => {
     }
 
     if (nowMs - state.toneStartMs >= MIN_TONE_MS) {
-      const rowFreq = ROW_FREQS[rowHit] ?? ROW_FREQS_DEFAULT;
-      const colFreq = COL_FREQS[colHit] ?? COL_FREQS_DEFAULT;
-      const confidence =
-        (dbAtFreq(fftData, rowFreq, sampleRate, fftSize) + dbAtFreq(fftData, colFreq, sampleRate, fftSize)) / 2;
+      const rowFreq = ROW_FREQS[row.index] ?? ROW_FREQS_DEFAULT;
+      const colFreq = COL_FREQS[col.index] ?? COL_FREQS_DEFAULT;
+      const confidence = (row.db + col.db) / 2;
 
       state.toneStartMs = null;
       state.cooldownUntilMs = nowMs + COOLDOWN_MS;

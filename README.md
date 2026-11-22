@@ -52,9 +52,11 @@ bun run build    # typecheck + build to dist/
 
 ```
 FFT frame (4096 points)
-  → scan 4 row freqs (697, 770, 852, 941 Hz)
-  → scan 4 col freqs (1209, 1336, 1477, 1633 Hz)
-  → if one row + one col both exceed -40 dB threshold
+  → scan 4 row freqs (697, 770, 852, 941 Hz), each ±1.5%
+  → scan 4 col freqs (1209, 1336, 1477, 1633 Hz), each ±1.5%
+  → take the loudest row and loudest col; each must exceed -40 dB
+    and beat the next loudest in its group by ≥ 6 dB (rejects speech/music)
+  → row and col levels within 8 dB of each other (twist)
   → stable for ≥ 40ms → emit DetectionEvent
   → fires once per tone; it must stop before the same digit fires again
   → 120ms cooldown between digits

@@ -31,8 +31,14 @@ export const ALL_DTMF_FREQS = [...ROW_FREQS, ...COL_FREQS] as const;
 export const freqToBin = (freq: number, sampleRate: number, fftSize: number): number =>
   Math.round((freq * fftSize) / sampleRate);
 
-/** Get dB value at a specific frequency from FFT data */
+/** DTMF receivers must accept tones up to 1.5% off nominal. */
+const FREQ_TOLERANCE = 0.015;
+
+/** Peak dB within the tolerance band around a frequency */
 export const dbAtFreq = (data: Float32Array, freq: number, sampleRate: number, fftSize: number): number => {
-  const bin = freqToBin(freq, sampleRate, fftSize);
-  return data[bin] ?? -Infinity;
+  const lo = freqToBin(freq * (1 - FREQ_TOLERANCE), sampleRate, fftSize);
+  const hi = freqToBin(freq * (1 + FREQ_TOLERANCE), sampleRate, fftSize);
+  let peak = -Infinity;
+  for (let bin = lo; bin <= hi; bin++) peak = Math.max(peak, data[bin] ?? -Infinity);
+  return peak;
 };
