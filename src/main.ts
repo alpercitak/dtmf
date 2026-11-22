@@ -1,4 +1,4 @@
-import { FFT_SIZE, getOrCreateContext, getSampleRate, readFFT } from './audio/analyser';
+import { FFT_SIZE, getContext, getSampleRate, readFFT } from './audio/analyser';
 import { playDTMFTone } from './audio/context';
 import { createDetector, THRESHOLD_DB } from './dtmf/detector';
 import { COL_FREQS, DIGIT_FREQS, dbAtFreq, ROW_FREQS } from './dtmf/frequencies';
@@ -85,32 +85,35 @@ canvas.addEventListener('click', async (e) => {
 
 const loop = () => {
   const { canvasW, canvasH, spectrumW, keypadW, vizH, tickerH, tickerY, keypad } = layout;
-  const nodes = getOrCreateContext();
-  const fftData = readFFT(nodes);
-  const sampleRate = getSampleRate(nodes);
+  const nodes = getContext();
   const nowMs = performance.now();
 
-  // Determine active DTMF frequencies
-  const activeFreqs = new Set<number>();
-  for (const f of ROW_FREQS) {
-    if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
-  }
-  for (const f of COL_FREQS) {
-    if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
-  }
-
-  // Run detector — audio pipeline drives flash + ticker for real signals
-  const event = detector.detect(fftData, sampleRate, FFT_SIZE, nowMs);
-  if (event) {
-    flashDigit(keypadState, event.digit, nowMs);
-    pushEvent(tickerState, event);
-  }
-
-  // Draw
   ctx2d.fillStyle = '#0a0a0f';
   ctx2d.fillRect(0, 0, canvasW, canvasH);
 
-  drawSpectrum(ctx2d, fftData, sampleRate, spectrumW, vizH, activeFreqs);
+  if (nodes) {
+    const fftData = readFFT(nodes);
+    const sampleRate = getSampleRate(nodes);
+
+    // Determine active DTMF frequencies
+    const activeFreqs = new Set<number>();
+    for (const f of ROW_FREQS) {
+      if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
+    }
+    for (const f of COL_FREQS) {
+      if (dbAtFreq(fftData, f, sampleRate, FFT_SIZE) > THRESHOLD_DB) activeFreqs.add(f);
+    }
+
+    // Run detector — audio pipeline drives flash + ticker for real signals
+    const event = detector.detect(fftData, sampleRate, FFT_SIZE, nowMs);
+    if (event) {
+      flashDigit(keypadState, event.digit, nowMs);
+      pushEvent(tickerState, event);
+    }
+
+    drawSpectrum(ctx2d, fftData, sampleRate, spectrumW, vizH, activeFreqs);
+  }
+
   drawKeypad(ctx2d, keypadState, keypad.x, keypad.y, keypadW, vizH, nowMs);
   drawTicker(ctx2d, tickerState, 10, tickerY, canvasW - 20, tickerH);
 

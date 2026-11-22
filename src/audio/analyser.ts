@@ -10,6 +10,9 @@ export interface AudioNodes {
 let nodes: AudioNodes | null = null;
 let currentSource: AudioNode | null = null;
 
+/** The context if a user action has created it; browsers block audio contexts created before one. */
+export const getContext = (): AudioNodes | null => nodes;
+
 export const getOrCreateContext = (): AudioNodes => {
   if (nodes) {
     return nodes;
