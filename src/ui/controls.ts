@@ -1,3 +1,4 @@
+import { disconnectCurrentSource } from '../audio/analyser';
 import { loadAudioFile, loadSampleFile } from '../audio/context';
 import { startMic } from '../audio/mic';
 import type { Detector } from '../dtmf/detector';
@@ -15,11 +16,17 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
     statusEl.textContent = msg;
   };
 
+  // Stop the old source right away, not once the new one has loaded, so it can't add digits after the clear.
+  const restart = () => {
+    disconnectCurrentSource();
+    clearTicker(tickerState);
+    detector.reset();
+  };
+
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
-    clearTicker(tickerState);
-    detector.reset();
+    restart();
     setStatus(`playing: ${file.name}`);
     try {
       await loadAudioFile(file);
@@ -30,8 +37,7 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
   });
 
   micBtn.addEventListener('click', async () => {
-    clearTicker(tickerState);
-    detector.reset();
+    restart();
     setStatus('mic active — listening...');
     try {
       await startMic();
@@ -42,8 +48,7 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
   });
 
   sampleBtn.addEventListener('click', async () => {
-    clearTicker(tickerState);
-    detector.reset();
+    restart();
     setStatus('playing: sample');
     try {
       await loadSampleFile();
