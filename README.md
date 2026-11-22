@@ -8,6 +8,8 @@
 
 Real-time DTMF decoder and visualizer. Feed it an audio file or live mic input. It decodes dual-tone multi-frequency signals via FFT and visualizes each keypress as it happens.
 
+**Live demo: [dtmf.pages.dev](https://dtmf.pages.dev/)**
+
 ---
 
 ## What it does
@@ -27,6 +29,7 @@ Every telephone keypress is encoded as two simultaneous sine waves, one from a r
 - **Vanilla TypeScript** — no framework, direct DOM + Canvas API
 - **Web Audio API** — `AnalyserNode` with `getFloatFrequencyData`
 - **Vite** — dev server and build
+- **Biome** — lint and format
 - **Bun** — runtime, package manager, test runner
 - **Cloudflare Pages** — deploy target
 
@@ -40,7 +43,9 @@ bun run dev
 ```
 
 ```bash
-bun run build    # outputs to dist/
+bun run check    # lint and format check (Biome)
+bun test         # detector tests
+bun run build    # typecheck + build to dist/
 ```
 
 ## How the detection works
@@ -51,7 +56,8 @@ FFT frame (4096 points)
   → scan 4 col freqs (1209, 1336, 1477, 1633 Hz)
   → if one row + one col both exceed -40 dB threshold
   → stable for ≥ 40ms → emit DetectionEvent
-  → cooldown 120ms to prevent repeat firing
+  → fires once per tone; it must stop before the same digit fires again
+  → 120ms cooldown between digits
 ```
 
 FFT size of 4096 at 44100 Hz gives ~10.8 Hz per bin — sufficient to distinguish 1336 Hz from 1477 Hz (141 Hz apart) with no ambiguity.
