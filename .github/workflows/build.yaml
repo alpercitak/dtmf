@@ -29,6 +29,8 @@ jobs:
 
       - run: bun run check
 
+      - run: bun test
+
       - uses: alpercitak/fasttrack@v0.2.2
         with:
           args: --build --verbose
