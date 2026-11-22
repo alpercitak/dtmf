@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check": "biome check",
     "preview": "vite preview",
     "test": "bun test"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "typescript": "^6.0.3",
     "vite": "^8.1.4"
   },
