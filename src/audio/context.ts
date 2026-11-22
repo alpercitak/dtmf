@@ -18,6 +18,7 @@ export const loadAudioFile = async (file: File): Promise<void> => {
 
 export const loadSampleFile = async (): Promise<void> => {
   const res = await fetch('/sample.wav');
+  if (!res.ok) throw new Error(`sample.wav: HTTP ${res.status}`);
   const arrayBuffer = await res.arrayBuffer();
   const nodes = getOrCreateContext();
   await nodes.ctx.resume();

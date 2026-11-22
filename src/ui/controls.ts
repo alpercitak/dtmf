@@ -12,8 +12,9 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
   const clearBtn = document.getElementById('btn-clear') as HTMLButtonElement;
   const statusEl = document.getElementById('status') as HTMLElement;
 
-  const setStatus = (msg: string) => {
+  const setStatus = (msg: string, isError = false) => {
     statusEl.textContent = msg;
+    statusEl.classList.toggle('error', isError);
   };
 
   // Stop the old source right away, not once the new one has loaded, so it can't add digits after the clear.
@@ -31,7 +32,7 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
     try {
       await loadAudioFile(file);
     } catch (e) {
-      setStatus('error loading file');
+      setStatus('error loading file', true);
       console.error(e);
     }
   });
@@ -42,7 +43,7 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
     try {
       await startMic();
     } catch (e) {
-      setStatus('mic access denied');
+      setStatus('mic access denied', true);
       console.error(e);
     }
   });
@@ -53,7 +54,7 @@ export const wireControls = (tickerState: TickerState, detector: Detector) => {
     try {
       await loadSampleFile();
     } catch (e) {
-      setStatus('error loading sample');
+      setStatus('error loading sample', true);
       console.error(e);
     }
   });
